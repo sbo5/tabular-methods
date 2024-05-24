@@ -85,6 +85,15 @@ class GridWorld:
         (1 - p_good_transition) * bias and to the right with probability
         (1 - p_good_transition) * (1 - bias).
 
+        Example: For a deterministic case, a state [0,0] in the top left corner with the action 0 (Up) would
+        hit the boundary and next_state is reset to [0,0]; p(s'=[0,0]|s=[0,0],a=0)=1.
+        For a stochastic case with p_good_transition = 0.7 and bias = 0.5, the p(s'=[0,0]|s=[0,0],a=0)=0.7.
+        Then the left transition would hit the wall, so p(s'=[0,0]|s=[0,0],a=0)=0.3*0.5=0.15,
+        and the right transition is p(s'=[0,1]|s=[0,0],a=0)=0.3*0.5=0.15.
+        In summary:
+        p(s'=[0,0]|s=[0,0],a=0) = 0.7+0.15 = 0.85
+        p(s'=[0,1]|s=[0,0],a=0) = 0.15
+
         Parameters
         ----------
         p_good_transition : float (in the interval [0,1])
@@ -179,14 +188,14 @@ class GridWorld:
                     continue
 
                 # check if the state is the goal state or an obstructed state - transition to end
-                row_col = seq_to_col_row(state, self.num_cols)
-                if self.obs_states is not None:
+                row_col = seq_to_col_row(state, self.num_cols)  # get the grid coordinate of the state
+                if self.obs_states is not None:     # The obstructed state is treated as the end state since the state cannot be on the obstruct
                     end_states = np.vstack((self.obs_states, self.goal_states))
                 else:
                     end_states = self.goal_states
 
-                if any(np.sum(np.abs(end_states-row_col), 1) == 0):
-                    self.P[state, self.num_states-1, action] = 1
+                if any(np.sum(np.abs(end_states-row_col), 1) == 0):     # if any()==0, it means row_col is one of the end_states
+                    self.P[state, self.num_states-1, action] = 1    # transition from state to fictional end state
 
                 # else consider stochastic effects of action
                 else:
@@ -208,12 +217,18 @@ class GridWorld:
                     if any(np.sum(np.abs(self.restart_states-row_col),1)==0):
                         next_state = row_col_to_seq(self.start_state, self.num_cols)
                         self.P[state,:,:] = 0
-                        self.P[state,next_state,:] = 1
+                        self.P[state,next_state,:] = 1  # transition from state to start state
         return self
 
     def _get_direction(self, action, direction):
         """
         Takes is a direction and an action and returns a new direction.
+        The stochastic left and right transition are w.r.t the action.
+        If the action is Up, then the stochastic left and right transition (direction) would be Left and Right.
+        If the action is Down, then the stochastic left and right transition (direction) would be Right and Left.
+        If the action is Left, then the stochastic left and right transition (direction) would be Down and Up.
+        If the action is Right, then the stochastic left and right transition (direction) would be Up and Down.
+        This is coded in the variables left and right below.
 
         Parameters
         ----------
@@ -221,12 +236,12 @@ class GridWorld:
             The current action 0, 1, 2, 3 for gridworld.
 
         direction : int
-            Either -1, 0, 1.
+            Either -1, 0, 1. (-1: stochastically implement Left; 0: deterministically implement action; 1: stochastically implement Right)
 
         Returns
         -------
         direction : int
-            Value either 0, 1, 2, 3.
+            Value either 0, 1, 2, 3. (0: Up, 1: Down, 2: Left, 3: Right)
         """
         left = [2,3,1,0]
         right = [3,2,0,1]
@@ -250,7 +265,7 @@ class GridWorld:
             The current state.
 
         direction : int
-            The current direction.
+            The current direction. (0: Up, 1: Down, 2: Left, 3: Right)
 
         Returns
         -------
@@ -263,7 +278,7 @@ class GridWorld:
         row_col[0,0] += row_change[direction]
         row_col[0,1] += col_change[direction]
 
-        # check for invalid states
+        # check for invalid states. The boundary is treated as a wall.
         if self.obs_states is not None:
             if (np.any(row_col < 0) or
                 np.any(row_col[:,0] > self.num_rows-1) or
