@@ -160,6 +160,16 @@ class GridWorld:
         self.goal_states_seq = row_col_to_seq(self.goal_states, self.num_cols)
 
         # rewards structure
+        # In this file, the reward matrix R is separated from the state transition probability model P(s,s',a).
+        # This embeds an assumption that the reward is only a function of the state (in this example, r=f(s));
+        # at each state, the reward is independent on the action and only dependent on the current state s.
+        # For example, starting from the bad state (s) and transiting to a normal state (s'), the agent receives a penalty.
+        # This is somehow aligned with the CSTR example, but, in which the reward (productivity) is calculated based on s' (cA) instead of s.
+        # This reward design would make the state reset difficult. With the same s, it could achieve different s' by different actions.
+        # Hence, an action resulting a good s' could receive a positive reward. A bad action could result in hitting and
+        # bouncing back from the wall; in this case a negative penalty should be assigned.
+        # Eventually, we need the information of s, a, and s' to assign the reward appropriately, instead of solely
+        # depending on s.
         self.R = self.r_step * np.ones((self.num_states, 1))
         self.R[self.num_states-1] = 0   # The fictional end state is assigned with a 0 reward
         self.R[self.goal_states_seq] = self.r_goal
