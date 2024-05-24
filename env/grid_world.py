@@ -155,13 +155,13 @@ class GridWorld:
             such as the reward structure and the transition dynamics.
         """
         self.num_actions = 4
-        self.num_states = self.num_cols * self.num_rows + 1
+        self.num_states = self.num_cols * self.num_rows + 1     # Add a fictional end state
         self.start_state_seq = row_col_to_seq(self.start_state, self.num_cols)
         self.goal_states_seq = row_col_to_seq(self.goal_states, self.num_cols)
 
         # rewards structure
         self.R = self.r_step * np.ones((self.num_states, 1))
-        self.R[self.num_states-1] = 0
+        self.R[self.num_states-1] = 0   # The fictional end state is assigned with a 0 reward
         self.R[self.goal_states_seq] = self.r_goal
         for i in range(self.num_bad_states):
             if self.r_bad is None:
@@ -184,7 +184,7 @@ class GridWorld:
 
                 # check if state is the fictional end state - self transition
                 if state == self.num_states-1:
-                    self.P[state, state, action] = 1
+                    self.P[state, state, action] = 1    # From the fictional end state to the fictional end state
                     continue
 
                 # check if the state is the goal state or an obstructed state - transition to end
